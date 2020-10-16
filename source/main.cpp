@@ -36,7 +36,7 @@ int va_fd = -1;
 
 bool dump_decode_output = false;
 
-const std::string input_model = "/home/fresh/data/model/resnet-50/resnet-50-128.xml";
+const std::string input_model = "./models/resnet-50-128.xml";
 
 void setBatchSize(CNNNetwork& network, size_t batch) {
     ICNNNetwork::InputShapes inputShapes = network.getInputShapes();
@@ -178,7 +178,7 @@ int decodeFrame(VASurfaceID& frame)
         va_status = vaMapBuffer(va_dpy, output_image.buf, &out_buf);
         CHECK_VASTATUS(va_status, "vaMapBuffer");
 
-        FILE *fp = fopen("out.nv12", "wb+");
+        FILE *fp = fopen("out_224x224.nv12", "wb+");
         // dump y_plane
         char *y_buf = (char*)out_buf;
         int y_pitch = output_image.pitches[0];
@@ -212,7 +212,11 @@ int main (int argc, char **argv) {
         dump_decode_output = true;
     }
     Core ie;
+#ifdef CLDNN_VER
     const std::string device_name = "GPU";
+#else
+    const std::string device_name = "DNNL";
+#endif
     CNNNetwork network = ie.ReadNetwork(input_model);
     setBatchSize(network, 1);
 
@@ -249,8 +253,12 @@ int main (int argc, char **argv) {
     }
 
     auto shared_va_context = gpu::make_shared_context(ie, device_name, va_dpy);
+#ifdef CLDNN_VER
     ExecutableNetwork executable_network = ie.LoadNetwork(network, shared_va_context,
         {{ CLDNNConfigParams::KEY_CLDNN_NV12_TWO_INPUTS, PluginConfigParams::YES } });
+#else
+    ExecutableNetwork executable_network = ie.LoadNetwork(network, shared_va_context);
+#endif
 
     InferRequest infer_request = executable_network.CreateInferRequest();
 
