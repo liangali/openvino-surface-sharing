@@ -22,6 +22,7 @@
 
 #include <gpu/gpu_context_api_va.hpp>
 #include <cldnn/cldnn_config.hpp>
+#include <ie_batched_blob.h>
 
 #include "va/va.h"
 #include "va/va_drm.h"
@@ -31,12 +32,14 @@
 
 using namespace InferenceEngine;
 
+//#define BATCH_BLOB
+
 VADisplay va_dpy = NULL;
 int va_fd = -1;
 
 bool dump_decode_output = false;
 
-const std::string input_model = "./models/resnet-50-128.xml";
+const std::string input_model = "/home/fresh/data/model/resnet-50/resnet-50-128.xml";
 
 void setBatchSize(CNNNetwork& network, size_t batch) {
     ICNNNetwork::InputShapes inputShapes = network.getInputShapes();
@@ -206,7 +209,8 @@ int decodeFrame(VASurfaceID& frame)
     return 0;
 }
 
-int main (int argc, char **argv) {
+int main (int argc, char **argv) 
+{
     if (argc == 2 && *argv[1] == 'd')
     {
         dump_decode_output = true;
@@ -217,8 +221,13 @@ int main (int argc, char **argv) {
 #else
     const std::string device_name = "DNNL";
 #endif
+
+    size_t batch_size = 1;
+#ifdef BATCH_BLOB
+    batch_size = 2;
+#endif
     CNNNetwork network = ie.ReadNetwork(input_model);
-    setBatchSize(network, 1);
+    setBatchSize(network, batch_size);
 
     // set input info
     if (network.getInputsInfo().empty()) {
@@ -262,15 +271,33 @@ int main (int argc, char **argv) {
 
     InferRequest infer_request = executable_network.CreateInferRequest();
 
+
+#ifdef BATCH_BLOB
+    VASurfaceID va_frame1 = va_frame;
+    VASurfaceID va_frame2 = 0; // VASurfaceID=0 is valid decode RT, although empty conent, just use it for test. 
+
+    std::vector<Blob::Ptr> blobs;
+    auto image1 = gpu::make_shared_blob_nv12(CLIP_HEIGHT, CLIP_WIDTH, shared_va_context, va_frame1); 
+    auto image2 = gpu::make_shared_blob_nv12(CLIP_HEIGHT, CLIP_WIDTH, shared_va_context, va_frame2); 
+    blobs.push_back(image1);
+    blobs.push_back(image2);
+    auto batchedBlob = make_shared_blob<BatchedBlob>(blobs);
+    infer_request.SetBlob(input_name, batchedBlob);
+#else
     //wrap decoder output into RemoteBlobs and set it as inference input
     auto nv12_blob = gpu::make_shared_blob_nv12(CLIP_HEIGHT, CLIP_WIDTH, shared_va_context, va_frame);
     infer_request.SetBlob(input_name, nv12_blob);
+#endif
 
     // Do inference
     infer_request.Infer();
 
     Blob::Ptr output = infer_request.GetBlob(output_name);
-    ClassificationResult classificationResult(output, {"vaapi-nv12"});
+#ifdef BATCH_BLOB
+    ClassificationResult classificationResult(output, {"image1", "image2"}, batch_size);
+#else
+    ClassificationResult classificationResult(output, {"image"}, batch_size);
+#endif
     classificationResult.print();
 
     printf("done!\n");
