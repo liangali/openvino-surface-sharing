@@ -30,14 +30,15 @@ if (CLDNN)
         OpenCL clDNNPlugin va va-drm)
 else()
     message("build DNNL version")
-    set (DLDT_DIR "${CMAKE_CURRENT_LIST_DIR}/../Linux")
-    set (DLDT_INCLUDE_DIR "/opt/intel/openvino/inference_engine")
+    set (DLDT_DIR "/home/gta/data/dldt/3832/Linux")
+    set (DLDT_INCLUDE_DIR "/home/gta/data/source/openvino/inference-engine")
+    set (ONEDNN_INCLUDE_DIR "/home/gta/data/source/onednn-plugin/plugin/openvino")
 
     set (OpenCV_INCLUDE_DIR ${DLDT_DIR}/opencv/include)
     set (OpenCV_LIB_DIR ${DLDT_DIR}/opencv/lib)
     set (OpenCV_LIBS opencv_core opencv_video opencv_videoio opencv_imgproc opencv_photo opencv_highgui opencv_imgcodecs)
 
-    set (OPENVINO_IE_INCLUDE ${DLDT_INCLUDE_DIR}/include)
+    set (OPENVINO_IE_INCLUDE ${DLDT_INCLUDE_DIR}/include ${ONEDNN_INCLUDE_DIR})
     set (OPENVINO_IE_LIB_DIR ${DLDT_DIR}/lib)
     set (OPENVINO_IE_LIBS DNNLPlugin inference_engine inference_engine_legacy)
 

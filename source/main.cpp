@@ -17,12 +17,17 @@
 #include <memory>
 #include <iomanip>
 
+#define BATCH_BLOB
+
 #include <inference_engine.hpp>
 #include <ie_compound_blob.h>
 
 #include <gpu/gpu_context_api_va.hpp>
 #include <cldnn/cldnn_config.hpp>
+
+#ifdef BATCH_BLOB
 #include <ie_batched_blob.h>
+#endif
 
 #include "va/va.h"
 #include "va/va_drm.h"
@@ -32,14 +37,12 @@
 
 using namespace InferenceEngine;
 
-//#define BATCH_BLOB
-
 VADisplay va_dpy = NULL;
 int va_fd = -1;
 
 bool dump_decode_output = false;
 
-const std::string input_model = "/home/fresh/data/model/resnet-50/resnet-50-128.xml";
+const std::string input_model = "/home/gta/data/model/resnet-50-128.xml";
 
 void setBatchSize(CNNNetwork& network, size_t batch) {
     ICNNNetwork::InputShapes inputShapes = network.getInputShapes();
