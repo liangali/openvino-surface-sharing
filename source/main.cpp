@@ -18,6 +18,7 @@
 #include <iomanip>
 
 #define BATCH_BLOB
+#define ENABLE_ASYNC
 
 #include <inference_engine.hpp>
 #include <ie_compound_blob.h>
@@ -274,7 +275,6 @@ int main (int argc, char **argv)
 
     InferRequest infer_request = executable_network.CreateInferRequest();
 
-
 #ifdef BATCH_BLOB
     VASurfaceID va_frame1 = va_frame;
     VASurfaceID va_frame2 = 0; // VASurfaceID=0 is valid decode RT, although empty conent, just use it for test. 
@@ -292,8 +292,14 @@ int main (int argc, char **argv)
     infer_request.SetBlob(input_name, nv12_blob);
 #endif
 
+#ifndef ENABLE_ASYNC
     // Do inference
     infer_request.Infer();
+#else
+    printf("####LOG: Using inference async \n");
+    infer_request.StartAsync();
+    infer_request.Wait(InferenceEngine::IInferRequest::RESULT_READY);
+#endif
 
     Blob::Ptr output = infer_request.GetBlob(output_name);
 #ifdef BATCH_BLOB
