@@ -26,7 +26,7 @@
 #include <cldnn/cldnn_config.hpp>
 
 #ifdef BATCH_BLOB
-#include <ie_batched_blob.h>
+#include <ie_compound_blob.h>
 #endif
 
 #include "va/va.h"
@@ -42,7 +42,7 @@ int va_fd = -1;
 
 bool dump_decode_output = false;
 
-const std::string input_model = "/home/gta/data/model/resnet-50-128.xml";
+const std::string input_model = "/home/gta/data/model/resnet_v1.5_50_i8.xml";
 
 void setBatchSize(CNNNetwork& network, size_t batch) {
     ICNNNetwork::InputShapes inputShapes = network.getInputShapes();
